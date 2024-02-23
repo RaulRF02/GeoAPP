@@ -10,43 +10,46 @@
 #include <unordered_map>
 #include <cstdlib>
 #include <random>
+#include <algorithm>
 
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp)
+using namespace std;
+
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, string* userp)
 {
     userp->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
 
 struct PrecioEnergia {
-    std::string pais;
-    std::string fecha;
+    string pais;
+    string fecha;
     double precio;
 };
 
-void parsearRespuesta(const std::string& respuesta, PrecioEnergia& resultado) {
+void parsearRespuesta(const string& respuesta, PrecioEnergia& resultado) {
     // Buscar la sección correspondiente a "Precio mercado spot"
-    std::size_t posInicio = respuesta.find("\"title\":\"Precio mercado spot");
-    if (posInicio != std::string::npos) {
+    size_t posInicio = respuesta.find("\"title\":\"Precio mercado spot");
+    if (posInicio != string::npos) {
         // Avanzar hasta la sección de valores
         posInicio = respuesta.find("\"values\":[", posInicio);
-        if (posInicio != std::string::npos) {
+        if (posInicio != string::npos) {
             // Encontrar el valor correspondiente a la segunda aparición
             posInicio = respuesta.find("\"value\":", posInicio);
-            if (posInicio != std::string::npos) {
+            if (posInicio != string::npos) {
                 posInicio = respuesta.find(":", posInicio);
-                std::size_t posFin = respuesta.find(",", posInicio);
-                if (posFin != std::string::npos) {
-                    std::string valorStr = respuesta.substr(posInicio + 1, posFin - posInicio - 1);
-                    resultado.precio = std::stod(valorStr);
+                size_t posFin = respuesta.find(",", posInicio);
+                if (posFin != string::npos) {
+                    string valorStr = respuesta.substr(posInicio + 1, posFin - posInicio - 1);
+                    resultado.precio = stod(valorStr);
                 }
             }
 
             // Encontrar la fecha correspondiente a la segunda aparición
             posInicio = respuesta.find("\"datetime\":", posInicio);
-            if (posInicio != std::string::npos) {
+            if (posInicio != string::npos) {
                 posInicio = respuesta.find(":", posInicio);
-                std::size_t posFin = respuesta.find("}", posInicio + 1);
-                if (posFin != std::string::npos) {
+                size_t posFin = respuesta.find("}", posInicio + 1);
+                if (posFin != string::npos) {
                     resultado.fecha = respuesta.substr(posInicio + 1, posFin - posInicio - 1);
                 }
             }
@@ -67,19 +70,19 @@ double obtenerValorAleatorio(double min, double max) {
 
 }
 
-double obtenerPrecioLuz(const std::string& pais, int hora) {
-    std::ifstream archivo("precios_luz.txt");
+double obtenerPrecioLuz(const string& pais, int hora) {
+    ifstream archivo("precios_luz.txt");
     if (!archivo.is_open()) {
-        std::cerr << "Error al abrir el archivo de precios." << std::endl;
+        cerr << "Error al abrir el archivo de precios." << endl;
         return -1.0;
     }
 
 
-    std::unordered_map<std::string, std::unordered_map<int, RangoPrecio>> preciosPorPaisHora;
+    unordered_map<string, unordered_map<int, RangoPrecio>> preciosPorPaisHora;
 
-    std::string linea;
-    std::string paisActual;
-    while (std::getline(archivo, linea)) {
+    string linea;
+    string paisActual;
+    while (getline(archivo, linea)) {
         if (!linea.empty() && linea.back() == '\r') {
             linea.pop_back();  // Elimina el retorno de carro si existe
         }
@@ -88,10 +91,10 @@ double obtenerPrecioLuz(const std::string& pais, int hora) {
             continue;
         }
 
-        if (linea.find(':') == std::string::npos) {
+        if (linea.find(':') == string::npos) {
             paisActual = linea;
         } else {
-            std::istringstream ss(linea);
+            istringstream ss(linea);
             int horaInicio, horaFin;
             char separador;
             double precioMin, precioMax;
@@ -112,59 +115,84 @@ double obtenerPrecioLuz(const std::string& pais, int hora) {
         }
     }
 
-    std::cerr << "No se encontraron datos para el país o la hora especificada." << std::endl;
+    cerr << "No se encontraron datos para el país o la hora especificada." << endl;
     return -1.0;
 }
+
+/**
+ * Función para calcular la mediana
+*/
+
+double calcularMediana(vector<PrecioEnergia>& datosPrecios) {
+    // Ordenar el vector según el precio
+    sort(datosPrecios.begin(), datosPrecios.end(), [](const PrecioEnergia& a, const PrecioEnergia& b) {
+        return a.precio < b.precio;
+    });
+
+    // Calcular la posición del valor medio
+    size_t n = datosPrecios.size();
+    size_t mitad = n / 2;
+
+    // Calcular la mediana
+    if (n % 2 == 0) {
+        // Si hay un número par de elementos, promediar los dos valores del medio
+        return (datosPrecios[mitad - 1].precio + datosPrecios[mitad].precio) / 2.0;
+    } else {
+        // Si hay un número impar de elementos, tomar el valor del medio
+        return datosPrecios[mitad].precio;
+    }
+}
+
 
 
 int main()
 {
     while (true) {
-        std::srand(std::time(0));
-        std::vector<PrecioEnergia> datosPrecios;
+        srand(time(0));
+        vector<PrecioEnergia> datosPrecios;
 
         // Obtener la hora actual
-        auto now = std::chrono::system_clock::now();
-        auto now_c = std::chrono::system_clock::to_time_t(now);
+        auto now = chrono::system_clock::now();
+        auto now_c = chrono::system_clock::to_time_t(now);
 
         // Calcular la hora siguiente
-        auto nextHour = now + std::chrono::hours(1);
-        auto nextHour_c = std::chrono::system_clock::to_time_t(nextHour);
+        auto nextHour = now + chrono::hours(1);
+        auto nextHour_c = chrono::system_clock::to_time_t(nextHour);
 
         // Convertir la hora actual y la hora siguiente a un formato de cadena
-        std::stringstream formattedStartTime;
+        stringstream formattedStartTime;
 
         //Quito los minutos para ponerlos a 00 usando la estructura tm y tras ajustarlo devolverlo con mktime a la estructura time_t
         //Necesito la hora en 00 para que la api me devuelve la hora actual, no la siguiente
-        tm tmAdjustedTime = *std::localtime(&now_c);
+        tm tmAdjustedTime = *localtime(&now_c);
         tmAdjustedTime.tm_min = 0;
-        now_c = std::mktime(&tmAdjustedTime);
-        formattedStartTime << std::put_time(std::localtime(&now_c), "%Y-%m-%dT%H:%M");
+        now_c = mktime(&tmAdjustedTime);
+        formattedStartTime << put_time(localtime(&now_c), "%Y-%m-%dT%H:%M");
 
-        std::stringstream formattedEndTime;
-        formattedEndTime << std::put_time(std::localtime(&nextHour_c), "%Y-%m-%dT%H:%M");
+        stringstream formattedEndTime;
+        formattedEndTime << put_time(localtime(&nextHour_c), "%Y-%m-%dT%H:%M");
 
-        std::cout << "Hora actual: " << formattedStartTime.str() << std::endl;
-        std::cout << "Siguiente hora: " << formattedEndTime.str() << std::endl;
+        cout << "Hora actual: " << formattedStartTime.str() << endl;
+        cout << "Siguiente hora: " << formattedEndTime.str() << endl;
 
-        std::tm tmStartTime = {};
-        std::istringstream ssStartTime(formattedStartTime.str());
-        ssStartTime >> std::get_time(&tmStartTime, "%Y-%m-%dT%H:%M");
+        tm tmStartTime = {};
+        istringstream ssStartTime(formattedStartTime.str());
+        ssStartTime >> get_time(&tmStartTime, "%Y-%m-%dT%H:%M");
         int horaActual = tmStartTime.tm_hour;
 
-        std::cout << horaActual;
+        cout << horaActual;
 
 
         CURL* curl;
         CURLcode res;
-        std::string readBuffer;
+        string readBuffer;
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
 
         if (curl) {
             // Construir la URL con la hora actual y la hora siguiente
-            std::string apiUrl = "https://apidatos.ree.es/es/datos/mercados/precios-mercados-tiempo-real?start_date=";
+            string apiUrl = "https://apidatos.ree.es/es/datos/mercados/precios-mercados-tiempo-real?start_date=";
             apiUrl += formattedStartTime.str();
             apiUrl += "&end_date=" + formattedEndTime.str() + "&time_trunc=hour";
 
@@ -180,7 +208,7 @@ int main()
             if (res != CURLE_OK)
                 fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
             else {
-                std::cout << "Datos recibidos:\n" << readBuffer << std::endl;
+                cout << "Datos recibidos:\n" << readBuffer << endl;
                 PrecioEnergia resultado;
                 parsearRespuesta(readBuffer, resultado);
                 datosPrecios.push_back(resultado);
@@ -192,7 +220,7 @@ int main()
 
 
             // Obtener la hora de los demas paises, hacer un vector e ir comparando
-            for (const std::string& otroPais : {"Alemania", "Francia", "Italia"}) {
+            for (const string& otroPais : {"Alemania", "Francia", "Italia"}) {
                 double precio = obtenerPrecioLuz(otroPais, horaActual);
 
                 PrecioEnergia resultado;
@@ -205,20 +233,23 @@ int main()
             }
 
             for (const auto& precio : datosPrecios) {
-                std::cout << "País: " << precio.pais << std::endl;
-                std::cout << "Fecha: " << precio.fecha << std::endl;
-                std::cout << "Precio: " << precio.precio << " €/MWh" << std::endl;
-                std::cout << std::endl;
-            }
-                        
-
-
+                cout << "País: " << precio.pais << endl;
+                cout << "Fecha: " << precio.fecha << endl;
+                cout << "Precio: " << precio.precio << " €/MWh" << endl;
+                cout << endl;
+            }                        
         }
 
         curl_global_cleanup();
 
+        //Hacer la mediana de los datos para obtener el umbral de precios "baratos" y "caros"
+        double umbral = calcularMediana(datosPrecios);
+
+        cout << "El umbral que determina si los precios son caros o baratos es: " << umbral << endl;
+
+
         // Esperar una hora antes de realizar la siguiente solicitud
-        std::this_thread::sleep_for(std::chrono::hours(1));
+        this_thread::sleep_for(chrono::hours(1));
     }
 
     return 0;

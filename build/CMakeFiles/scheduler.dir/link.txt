@@ -1,0 +1,1 @@
+/usr/bin/c++ -rdynamic CMakeFiles/scheduler.dir/main.cpp.o CMakeFiles/scheduler.dir/PrecioEnergia.cpp.o CMakeFiles/scheduler.dir/EnergiaAPI.cpp.o -o scheduler  -lcurl 

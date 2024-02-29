@@ -1,0 +1,6 @@
+<map id="PrecioEnergia.hpp" name="PrecioEnergia.hpp">
+<area shape="rect" id="node1" title="Definición de la estructura PrecioEnergia." alt="" coords="57,5,195,32"/>
+<area shape="rect" id="node2" href="$EnergiaAPI_8hpp.html" title="Definición de la clase EnergiaAPI para obtener los datos y la estructura RangoPrecio." alt="" coords="66,80,186,107"/>
+<area shape="rect" id="node3" href="$EnergiaAPI_8cpp.html" title="Implementación de las funciones y métodos de la clase EnergiaAPI." alt="" coords="5,155,124,181"/>
+<area shape="rect" id="node4" href="$main_8cpp.html" title="Implementación del programa principal que utiliza la clase EnergiaAPI para obtener y analizar datos d..." alt="" coords="147,155,230,181"/>
+</map>

@@ -1,3 +1,8 @@
+/**
+ * @file main.cpp
+ * @brief Implementación del programa principal que utiliza la clase EnergiaAPI para obtener y analizar datos de precios de energía.
+ */
+
 #include "EnergiaAPI.hpp"
 
 #include <iostream>
@@ -16,6 +21,47 @@
 using namespace std;
 
 
+/**
+ * @brief Tamaño de la matriz cuadrada.
+ */
+const int TAMANO_MATRIZ = 3;
+
+/**
+ * @brief Multiplica dos matrices cuadradas.
+ * @param matriz1 Primera matriz de entrada.
+ * @param matriz2 Segunda matriz de entrada.
+ * @param resultado Matriz resultante de la multiplicación.
+ */
+void multiplicarMatrices(int matriz1[TAMANO_MATRIZ][TAMANO_MATRIZ], int matriz2[TAMANO_MATRIZ][TAMANO_MATRIZ], int resultado[TAMANO_MATRIZ][TAMANO_MATRIZ]) {
+    for (int i = 0; i < TAMANO_MATRIZ; ++i) {
+        for (int j = 0; j < TAMANO_MATRIZ; ++j) {
+            resultado[i][j] = 0;
+            for (int k = 0; k < TAMANO_MATRIZ; ++k) {
+                resultado[i][j] += matriz1[i][k] * matriz2[k][j];
+            }
+        }
+    }
+}
+
+/**
+ * @brief Muestra una matriz en la salida estándar.
+ * @param matriz Matriz a mostrar.
+ */
+void mostrarMatriz(int matriz[TAMANO_MATRIZ][TAMANO_MATRIZ]) {
+    std::cout << "Matriz resultante:\n";
+    for (int i = 0; i < TAMANO_MATRIZ; ++i) {
+        for (int j = 0; j < TAMANO_MATRIZ; ++j) {
+            std::cout << matriz[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+}
+
+/**
+ * @brief Calcula la mediana de un vector de PrecioEnergia ordenado por precio.
+ * @param[in,out] datosPrecios Vector desordenado de PrecioEnergia.
+ * @return Valor de la mediana.
+ */
 double calcularMediana(vector<PrecioEnergia>& datosPrecios) {
     // Ordenar el vector según el precio
     sort(datosPrecios.begin(), datosPrecios.end(), [](const PrecioEnergia& a, const PrecioEnergia& b) {
@@ -37,12 +83,26 @@ double calcularMediana(vector<PrecioEnergia>& datosPrecios) {
 }
 
 
-
+/**
+ * @brief Función principal del programa que obtiene, analiza y muestra datos de precios de energía.
+ * @return Código de salida del programa.
+ */
 int main()
 {
     while (true) {
         srand(time(0));
         vector<PrecioEnergia> datosPrecios;
+
+        // Declarar matrices de tamaño TAMANO_MATRIZ x TAMANO_MATRIZ
+        int matriz1[TAMANO_MATRIZ][TAMANO_MATRIZ] = {{1, 2, 3},
+                                                    {4, 5, 6},
+                                                    {7, 8, 9}};
+
+        int matriz2[TAMANO_MATRIZ][TAMANO_MATRIZ] = {{9, 8, 7},
+                                                    {6, 5, 4},
+                                                    {3, 2, 1}};
+
+        int resultado[TAMANO_MATRIZ][TAMANO_MATRIZ];
 
         // Obtener la hora actual
         auto now = chrono::system_clock::now();
@@ -110,6 +170,18 @@ int main()
 
         cout << "El umbral que determina si los precios son caros o baratos es: " << umbral << endl;
 
+        if (datosPrecios.at(0).precio <= umbral ){
+            cout << "El precio del pais actual es barato, multiplico las matrices" << endl;
+            // Multiplicar las matrices
+            multiplicarMatrices(matriz1, matriz2, resultado);
+
+            // Mostrar el resultado utilizando la función mostrarMatriz
+            mostrarMatriz(resultado);
+        } else {
+            // Aqui deberia tomar la decision de pausar la ejecucion o pasar los datos a otra máquina
+        
+        }
+        
 
         // Esperar una hora antes de realizar la siguiente solicitud
         this_thread::sleep_for(chrono::hours(1));

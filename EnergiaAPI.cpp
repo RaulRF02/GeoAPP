@@ -92,7 +92,7 @@ PrecioEnergia EnergiaAPI::parsearDesdeRespuesta(const std::string& respuesta) {
  * @param[in] hora Hora del día para la que se desea obtener datos de precios de energía.
  * @return Precio de la energía para el país y hora especificados.
  */
-double EnergiaAPI::obtenerDatosPrecios(const string& pais, int hora) {
+double EnergiaAPI::obtenerDatosLista(const string& pais, int hora) {
     ifstream archivo("../precios_luz.txt");
     if (!archivo.is_open()) {
         cerr << "Error al abrir el archivo de precios." << endl;

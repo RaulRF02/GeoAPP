@@ -4,6 +4,7 @@
  */
 
 #include "EnergiaAPI.hpp"
+#include "VolatilidadesExtranjero.hpp"
 
 #include <iostream>
 #include <string>
@@ -135,8 +136,9 @@ int main()
 
         cout << horaActual;
 
-        // Crear un objeto APIHandler
+        // Crear un objeto APIHandler y de varianzas
         EnergiaAPI apiHandler;
+        VolatilidadesExtranjero apiHandlerVolatil;
 
         // Obtener datos de la API
         string apiResponse;
@@ -149,9 +151,18 @@ int main()
             resultadoAPI.fecha = formattedStartTime.str();
             datosPrecios.push_back(resultadoAPI);
         }
+
         // Obtener datos de los demas paises que no van por API
         for (const string& otroPais : {"Alemania", "Francia", "Italia"}) {
-            double precio = apiHandler.obtenerDatosPrecios(otroPais, horaActual);
+            double precio = apiHandler.obtenerDatosLista(otroPais, horaActual);
+
+            PrecioEnergia resultadoAPI(otroPais, formattedStartTime.str(), precio);
+            datosPrecios.push_back(resultadoAPI);
+        }
+
+        //Segunda forma de obtener datos
+        for(const string& otroPais : {"Alemania", "Francia", "Italia"}) {
+            double precio = apiHandlerVolatil.obtenerDatosVarianza(otroPais);
 
             PrecioEnergia resultadoAPI(otroPais, formattedStartTime.str(), precio);
             datosPrecios.push_back(resultadoAPI);

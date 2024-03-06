@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @file PrecioEnergia.hpp
  * @brief Definición de la estructura PrecioEnergia.

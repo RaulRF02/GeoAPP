@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @file EnergiaAPI.hpp
  * @brief Definición de la clase EnergiaAPI para obtener los datos y la estructura RangoPrecio.
@@ -13,18 +15,19 @@
  * @brief Clase que proporciona funcionalidades para interactuar con una API de energía y obtener los datos de la luz en diferentes paises.
  */
 class EnergiaAPI {
-    /**
-     * @struct RangoPrecio
-     * @brief Estructura que representa un rango de precios para los paises en los que no hay una api existente.
-     */
-    struct RangoPrecio {
-        double min;
-        double max;
-    };
+   
     private:
         static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp);
         CURL* curl;
     public:
+        /**
+         * @struct RangoPrecio
+         * @brief Estructura que representa un rango de precios para los paises en los que no hay una api existente.
+         */
+        struct RangoPrecio {
+            double min;
+            double max;
+        };
         /**
          * @brief Constructor por defecto de EnergiaAPI.
          * @details Inicializa el objeto CURL.
@@ -38,7 +41,7 @@ class EnergiaAPI {
          * @param[in] hora Hora del día para la que se desea obtener datos de precios de energía.
          * @return Precio de la energía para el país y hora especificados.
          */
-        double obtenerDatosPrecios(const std::string& pais, int hora);
+        double obtenerDatosLista(const std::string& pais, int hora);
 
         /**
          * @brief Parsea la respuesta de la API y devuelve un objeto PrecioEnergia.

@@ -113,14 +113,23 @@ int main()
         auto nextHour = now + chrono::hours(1);
         auto nextHour_c = chrono::system_clock::to_time_t(nextHour);
 
+        // Verificar si los minutos son mayores a 30 para decidir qué variable utilizar
+        tm tmAdjustedTime = *localtime(&now_c);
+        bool usarEndTime = tmAdjustedTime.tm_min > 30;
+
+        // Ajustar la hora actual y la hora siguiente según la condición
+        if (usarEndTime) {
+            // Utilizar la hora siguiente
+            tmAdjustedTime.tm_min = 0;
+            nextHour_c = mktime(&tmAdjustedTime) + 3600; // Sumar 1 hora en segundos
+        } else {
+            // Utilizar la hora actual
+            tmAdjustedTime.tm_min = 0;
+            now_c = mktime(&tmAdjustedTime);
+        }
+
         // Convertir la hora actual y la hora siguiente a un formato de cadena
         stringstream formattedStartTime;
-
-        //Quito los minutos para ponerlos a 00 usando la estructura tm y tras ajustarlo devolverlo con mktime a la estructura time_t
-        //Necesito la hora en 00 para que la api me devuelve la hora actual, no la siguiente
-        tm tmAdjustedTime = *localtime(&now_c);
-        tmAdjustedTime.tm_min = 0;
-        now_c = mktime(&tmAdjustedTime);
         formattedStartTime << put_time(localtime(&now_c), "%Y-%m-%dT%H:%M");
 
         stringstream formattedEndTime;
@@ -134,7 +143,6 @@ int main()
         ssStartTime >> get_time(&tmStartTime, "%Y-%m-%dT%H:%M");
         int horaActual = tmStartTime.tm_hour;
 
-        cout << horaActual;
 
         // Crear un objeto APIHandler y de varianzas
         EnergiaAPI apiHandler;

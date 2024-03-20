@@ -4,8 +4,7 @@
 #include <vector>
 #include "EnergiaAPI.hpp"
 
-class VolatilidadesExtranjero {
-public:
+
     struct VolatilidadPais {
         std::string pais;
         double media;
@@ -18,20 +17,13 @@ public:
         : pais(p), media(m), desviacionHora(dh), desviacionDia(dd), mes{mesMin, mesMax}, dia{diaMin, diaMax} {}
     };
 
-    VolatilidadesExtranjero();
 
-    // Obtener el vector de volatilidades extranjero
-    const std::vector<VolatilidadPais>& obtenerVolatilidades() const;
 
     // Función para simular el precio del día para un país
-    double simularPrecioDia(std::string pais);
+    double simularPrecioDia(VolatilidadPais pais);
 
      // Función para simular el precio por hora para un país
-    double simularPrecioHora(std::string pais);
+    double simularPrecioHora(VolatilidadPais pais);
 
-    double obtenerDatosVarianza(std::string pais);
+    double obtenerDatosVarianza(VolatilidadPais pais);
 
-private:
-    // Vector para almacenar volatilidades extranjero
-    std::vector<VolatilidadPais> volatilidades;
-};

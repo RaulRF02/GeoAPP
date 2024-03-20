@@ -2,8 +2,8 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
-
-VolatilidadesExtranjero::VolatilidadesExtranjero() {
+/*
+VolatilidadesExtranjero() {
     // Inicializa las volatilidades para los países extranjeros
 
     volatilidades.push_back({"Alemania", 60.7, 14.5, 52, 15, 90, -40, 40});
@@ -11,71 +11,48 @@ VolatilidadesExtranjero::VolatilidadesExtranjero() {
     volatilidades.push_back({"Francia", 58.5, 10.6, 50.4, 40, 75, -40, 40});
 }
 
-const std::vector<VolatilidadesExtranjero::VolatilidadPais>& VolatilidadesExtranjero::obtenerVolatilidades() const {
-    return volatilidades;
-}
+*/
 
 double acotarValor(double valor, double min, double max) {
     return std::min(std::max(valor, min), max);
 }
 
-double VolatilidadesExtranjero::simularPrecioDia(std::string pais) {
-    // Busca el país en el vector de volatilidades
-    auto it = find_if(volatilidades.begin(), volatilidades.end(),
-                           [&pais](const VolatilidadPais& v) { return v.pais == pais; });
-
-    if (it != volatilidades.end()) {
-        // Encontró el país, simula el precio del día
+double simularPrecioDia(VolatilidadPais pais) {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::normal_distribution<> distribucion(0, it->desviacionDia); // Media 0, volatilidad dada
+        std::normal_distribution<> distribucion(0, pais.desviacionDia); // Media 0, volatilidad dada
         double variacion = distribucion(gen);
         // Acotar el valor dentro del rango [mesMin, mesMax] manualmente
-        double precioSimulado = acotarValor(it->media + variacion, it->mes.min, it->mes.max);
+        double precioSimulado = acotarValor(pais.media + variacion, pais.mes.min, pais.mes.max);
 
 //////
         std::cout << "SimularPrecioDia variacion: " << variacion << std::endl;
         std::cout << "SimularPrecioDia: " << precioSimulado << std::endl;
 /////////
         return precioSimulado;
-    } else {
-        // No se encontró el país
-        throw std::runtime_error("País no disponible.");
-    }
+    
 }
 
-double VolatilidadesExtranjero::simularPrecioHora(std::string pais) {
-    auto it = std::find_if(volatilidades.begin(), volatilidades.end(),
-                           [&pais](const VolatilidadPais& v) { return v.pais == pais; });
-
-    if (it != volatilidades.end()) {
+double simularPrecioHora(VolatilidadPais pais) {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::normal_distribution<> distribucion(0, it->desviacionHora);
+        std::normal_distribution<> distribucion(0, pais.desviacionHora);
         double variacion = distribucion(gen);
 
         // Acotar el valor dentro del rango [diaMin, diaMax] manualmente
-        double precioSimulado = acotarValor(variacion, it->dia.min, it->dia.max);
+        double precioSimulado = acotarValor(variacion, pais.dia.min, pais.dia.max);
 
         std::cout << "SimularPrecioHora variacion: " << variacion << std::endl;
 
         return precioSimulado;
-    } else {
-        throw std::runtime_error("País no disponible.");
-    }
+    
 }
 
-    double VolatilidadesExtranjero::obtenerDatosVarianza(std::string pais){
-     auto it = std::find_if(volatilidades.begin(), volatilidades.end(),
-                           [&pais](const VolatilidadPais& v) { return v.pais == pais; });
-                           
-     if (it != volatilidades.end()) {
-        double precioDia = simularPrecioDia(it->pais);
-        precioDia += simularPrecioHora(it->pais);
+double obtenerDatosVarianza(VolatilidadPais pais){
+                          
+        double precioDia = simularPrecioDia(pais);
+        precioDia += simularPrecioHora(pais);
         return precioDia;
-    } else {
-        throw std::runtime_error("País no disponible.");
-    }
-   
-    }
+
+}
 

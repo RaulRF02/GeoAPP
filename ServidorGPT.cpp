@@ -1,44 +1,28 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>
+#include <vector>
+#include <cstring> // Para strtok
+#include <cstdlib> // Para atof
+#include <cstdio> // Para sprintf
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "VolatilidadesExtranjero.hpp"
+#include "PrecioEnergia.hpp"
 
 #define PORT 8080
 #define MAX_CLIENTS 5
 #define MAX_COUNTRIES 5
 #define BUFFER_TAM 1024
-/*
-struct Country {
-    char name[50];
-    float electricity_price;
-
-    // Constructor por parámetros
-    Country(const char* country_name, float price) {
-        strcpy(name, country_name);
-        electricity_price = price;
-    }
-};
-*/
 
 int main() {
-    int server_fd, new_socket, client_sockets[MAX_COUNTRIES];
+    int server_fd, new_socket, client_sockets[MAX_CLIENTS];
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[BUFFER_TAM] = {0};
-    int i, cheapest_country_index = -1;
-    float cheapest_price = -1.0;
-
-    struct Country countries[MAX_COUNTRIES] = {
-        Country("Country1", -1.0),
-        Country("Country2", -1.0),
-        Country("Country3", -1.0),
-        // Agrega más países según necesidad
-    };
+    int i;
+    
+    std::vector<PrecioEnergia> paises;
 
     // Crear el socket del servidor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -83,28 +67,28 @@ int main() {
         while ((valread = read(new_socket, buffer, BUFFER_TAM)) > 0) {
             printf("Mensaje recibido: %s\n",buffer);
             // Extraer el nombre y el precio de la luz del mensaje
-            char *country_name = strtok(buffer, ",");
-            float electricity_price = atof(strtok(NULL, ","));
-
-            // Actualizar datos del país
-            for (int j = 0; j < MAX_COUNTRIES; j++) {
-                if (strcmp(countries[j].name, country_name) == 0) {
-                    countries[j].electricity_price = electricity_price;
-                    break;
-                }
-            }
+            char *nombrePais = strtok(buffer, ",");
+            float precioPais = atof(strtok(NULL, ","));
+            
+            // Creación de un objeto PrecioEnergia
+            PrecioEnergia res;
+            res.pais = nombrePais;
+            res.precio = precioPais;
+            paises.push_back(res); // Agregar país al vector
 
             // Determinar el país más barato
-            for (int j = 0; j < MAX_COUNTRIES; j++) {
-                if (countries[j].electricity_price > 0 && (cheapest_price < 0 || countries[j].electricity_price < cheapest_price)) {
-                    cheapest_price = countries[j].electricity_price;
-                    cheapest_country_index = j;
+            int indicePaisBarato = 0;
+            float precioBarato = paises[0].precio;
+            for (int j = 1; j < paises.size(); j++) {
+                if (paises[j].precio < precioBarato) {
+                    precioBarato = paises[j].precio;
+                    indicePaisBarato = j;
                 }
             }
 
             // Enviar mensaje de país más barato a todos los clientes
             char cheapest_country_msg[BUFFER_TAM];
-            sprintf(cheapest_country_msg, "El país más barato es %s con un precio de la luz de %.2f\n", countries[cheapest_country_index].name, cheapest_price);
+            sprintf(cheapest_country_msg, "El país más barato es %s con un precio de la luz de %.2f\n", paises[indicePaisBarato].pais.c_str(), precioBarato);
             for (int j = 0; j < MAX_COUNTRIES; j++) {
                 send(client_sockets[j] , cheapest_country_msg , strlen(cheapest_country_msg) , 0 );
             }

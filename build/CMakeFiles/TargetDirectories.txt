@@ -1,3 +1,0 @@
-/home/raul/Documentos/Cuarto/TFG/build/CMakeFiles/scheduler.dir
-/home/raul/Documentos/Cuarto/TFG/build/CMakeFiles/edit_cache.dir
-/home/raul/Documentos/Cuarto/TFG/build/CMakeFiles/rebuild_cache.dir

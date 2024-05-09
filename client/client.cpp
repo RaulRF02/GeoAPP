@@ -217,9 +217,8 @@ int main(int argc, char *argv[])
     }
 
     string pais = argv[1];
-    VolatilidadPais datosPais = cargarVolatilidadPais(pais);
 
-    cout << "Datos para " << datosPais.pais << endl;
+    cout << "Datos para " << pais << endl;
 
     cout << "Creando socket del cliente..." << endl;
     int sock = 0;
@@ -276,11 +275,30 @@ int main(int argc, char *argv[])
                             std::string formattedEndTime;
 
                             obtenerHorasFormateadas(formattedStartTime, formattedEndTime);
+                            PrecioEnergia datosPrecio;
 
-                            double precio = obtenerDatosVarianza(datosPais);
-                            PrecioEnergia datosPrecio(datosPais.pais, formattedStartTime, precio);
+                            if (pais == "España"){
+                                EnergiaAPI apiHandler;
+                                string apiResponse;
+                                    if (apiHandler.obtenerDatosAPI(formattedStartTime, formattedEndTime, apiResponse)) {
+                                        cout << "Datos recibidos:\n" << apiResponse << endl;
 
-                            std::cout << datosPais.pais << std::endl;
+                                        // Crear un objeto PrecioEnergiaAPI y parsear la respuesta
+                                        PrecioEnergia resultadoAPI;
+                                        resultadoAPI = apiHandler.parsearDesdeRespuesta(apiResponse);
+                                        resultadoAPI.fecha = formattedStartTime;
+                                        datosPrecio = resultadoAPI;
+                                    }
+                            } else{
+                                VolatilidadPais datosPais = cargarVolatilidadPais(pais);
+                                double precio = obtenerDatosVarianza(datosPais);
+                                datosPrecio.pais = pais;
+                                datosPrecio.fecha = formattedStartTime;
+                                datosPrecio.precio = precio;
+                            }
+                            
+
+                            std::cout << datosPrecio.pais << std::endl;
 
                             // Mostrar resultados
 

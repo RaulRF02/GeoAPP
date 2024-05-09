@@ -198,10 +198,6 @@ void recibirPrecios(vector<int>& client_sockets) {
     }
 }
 
-
-
-
-
 int main() {
     cout << "Creando socket del servidor..." << endl;
     int server_fd, new_socket;

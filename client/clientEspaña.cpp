@@ -12,8 +12,8 @@
 #include <iomanip>
 #include <sstream>
 
-#include "VolatilidadesExtranjero.hpp"
-#include "EnergiaAPI.hpp"
+#include "../include/VolatilidadesExtranjero.hpp"
+#include "../include/EnergiaAPI.hpp"
 
 #define PORT 8080
 #define BUFFER_TAM 1024

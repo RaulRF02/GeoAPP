@@ -21,3 +21,15 @@ Este trabajo de investigación busca demostrar que se puede lograr un ahorro eco
 - Crear un scheduler eficiente en C++.
 - Evaluar dinámicamente el precio de la electricidad.
 - Implementar la geodistribución de carga de trabajo en función de la tarifa eléctrica.
+
+## Estructura del Proyecto
+El proyecto está estructurado en directorios separados para el servidor y los clientes, así como para el código fuente y las cabeceras. La estructura de directorios es la siguiente:
+- `src/`: Contiene el código fuente compartido.
+- `include/`: Contiene las cabeceras compartidas.
+- `server/`: Contiene el código específico del servidor.
+- `client/`: Contiene el código específico del cliente.
+
+## Compilación y Ejecución
+El proyecto cuenta con un Makefile para facilitar la compilación. Para compilar el proyecto, simplemente ejecuta el comando `make` en la raíz del proyecto. Esto generará los ejecutables `servidor` y `cliente`.
+
+Para ejecutar el servidor, utiliza el comando `./servidor`. Los clientes se ejecutan por terminales separadas con `./cliente` seguido del país, por ejemplo, `./cliente Alemania`. Actualmente, el proyecto soporta Italia, Francia y Alemania.

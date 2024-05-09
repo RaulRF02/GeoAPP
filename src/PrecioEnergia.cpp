@@ -1,4 +1,4 @@
-#include "PrecioEnergia.hpp"
+#include "../include/PrecioEnergia.hpp"
 
 PrecioEnergia::PrecioEnergia()
     : pais("defecto"), fecha("defecto"), precio(0.0){}

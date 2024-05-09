@@ -2,7 +2,7 @@
  * @file EnergiaAPI.cpp
  * @brief Implementación de las funciones y métodos de la clase EnergiaAPI.
  */
-#include "EnergiaAPI.hpp"
+#include "../include/EnergiaAPI.hpp"
 #include <curl/curl.h>
 #include <fstream>
 #include <unordered_map>

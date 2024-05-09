@@ -1,0 +1,42 @@
+{
+    "Alemania": {
+       "media": 60.7,
+       "desviacionDia": 14.5,
+       "desviacionHora": 52,
+       "mes": {
+         "min": 15,
+         "max": 90
+       },
+       "dia": {
+         "min": -40,
+         "max": 40
+       }
+    },
+    "Italia": {
+       "media": 87,
+       "desviacionDia": 7.4,
+       "desviacionHora": 37.8,
+       "mes": {
+         "min": 70,
+         "max": 105
+       },
+       "dia": {
+         "min": -30,
+         "max": 30
+       }
+    },
+    "Francia": {
+       "media": 58.5,
+       "desviacionDia": 10.6,
+       "desviacionHora": 50.4,
+       "mes": {
+         "min": 40,
+         "max": 75
+       },
+       "dia": {
+         "min": -40,
+         "max": 40
+       }
+    }
+   }
+   

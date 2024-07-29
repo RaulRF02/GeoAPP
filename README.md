@@ -1,11 +1,9 @@
 
 # GeoAPP
 
-The objective of this project is to implement a C++ programmer that evaluates hourly electricity prices at run time. Based on these values, the algorithm will geo-distribute the workload of an application or task.
+The objective of this project is to implement a C++ scheduler that evaluates hourly electricity prices at run time. Based on these values, the algorithm will geo-distribute the workload of an application or task.
 
 ## General Information
-
--  **Title of TFG:** Geodistributed Distribution Algorithm for Energy Saving
 
 - **Author** Raúl Rodríguez Fernández
 

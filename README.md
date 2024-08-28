@@ -1,5 +1,5 @@
 
-# GeoAPP
+# GeoAPP    
 
 The objective of this project is to implement a C++ programmer that evaluates hourly electricity prices at run time. Based on these values, the algorithm will geo-distribute the workload of an application or task.
 

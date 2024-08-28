@@ -17,41 +17,106 @@
 #include <mutex>
 #include "rapidjson/document.h"
 #include "rapidjson/filereadstream.h"
-
+#include "../include/Matrix.hpp"
 #include "../include/VolatilidadesExtranjero.hpp"
+#include <boost/asio.hpp>
+
 
 #define PORT 8080
 #define BUFFER_TAM 1024
+#define MATRIX_SIZE 10000
+
 
 using namespace std;
+using boost::asio::ip::tcp;
+
 
 bool stopTask = false;
 int socketServer;
-std::mutex mtx; // Mutex para proteger el acceso al recurso compartido
+std::mutex mtx; 
+
+int A[MATRIX_SIZE][MATRIX_SIZE], B[MATRIX_SIZE][MATRIX_SIZE], C[MATRIX_SIZE][MATRIX_SIZE];
+
+/**
+ * @brief Envia una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente al que se enviará la matriz.
+ * @param matrix Matriz que se va a enviar.
+ */
+ void sendMatrix(int client_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int buffer[BUFFER_TAM / sizeof(int)];
+    int elements_per_buffer = BUFFER_TAM / sizeof(int);
+
+    for (int i = 0; i < MATRIX_SIZE; ++i) {
+        for (int j = 0; j < MATRIX_SIZE; j += elements_per_buffer) {
+            int block_size = min(elements_per_buffer, MATRIX_SIZE - j);
+            memcpy(buffer, &matrix[i][j], block_size * sizeof(int));
+            send(client_socket, buffer, block_size * sizeof(int), 0);
+            memset(buffer, 0, sizeof(buffer));
+
+        }
+    }
+}
+
+/**
+ * @brief Recive una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente del que se recibirá la matriz.
+ * @param matrix Matriz que se va a recibir.
+ */
+void receiveMatrix(int server_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int buffer[BUFFER_TAM / sizeof(int)];
+    int elements_per_buffer = BUFFER_TAM / sizeof(int);
+
+    for (int i = 0; i < MATRIX_SIZE; ++i) {
+        for (int j = 0; j < MATRIX_SIZE; j += elements_per_buffer) {
+            int block_size = min(elements_per_buffer, MATRIX_SIZE - j);
+            recv(server_socket, buffer, block_size * sizeof(int), 0);
+            memcpy(&matrix[i][j], buffer, block_size * sizeof(int));
+        }
+    }
+}
+
 
 /**
  * @brief Guarda el estado de la tarea en un archivo temporal.
  *
  * @param state El estado de la tarea a guardar.
  */
-void saveState(int state)
-{
-    mtx.lock();
-    cout << "Guardando estado..." << endl;
-    FILE* file = fopen("taskState.tmp", "w");
-    if (file != NULL)
-    {
-        fprintf(file, "%d", state);
-        fclose(file);
-        const char* ackMessage = "ACK_SAVE_STATE";
+void saveState(int row) {
+    std::lock_guard<std::mutex> lock(mtx);  
+    std::ofstream file("taskState.tmp");
+    if (file.is_open()) {
+        file << row;  
+        file.close();
+        char ackMessage[BUFFER_TAM] = {0};
+        sprintf(ackMessage, "ACK_SAVE_STATE:%d", row);
         send(socketServer, ackMessage, strlen(ackMessage), 0);
-    }
-    else
-    {
+
+        std::cout << "Estado guardado: Fila " << row << std::endl;
+    } else {
         perror("Error al abrir el archivo taskState.tmp.");
     }
-    mtx.unlock();
+    stopTask = false;
 }
+
+/**
+ * @brief Carga el estado de la tarea desde un archivo temporal.
+ */
+int loadState() {
+    std::ifstream file("taskState.tmp");
+    int row = 0;
+    if (file.is_open()) {
+        file >> row;  
+        file.close();
+        std::cout << "Estado restaurado: Continuando desde la fila " << row << std::endl;
+    } else {
+        std::cout << "No se encontró estado previo. Comenzando desde la fila 0." << std::endl;
+    }
+    return row;
+}
+
+
 
 /**
  * @brief Obtiene las horas formateadas para el inicio y fin de una tarea.
@@ -100,6 +165,29 @@ void obtenerHorasFormateadas(std::string &formattedStartTime, std::string &forma
     std::tm tmStartTime = {};
     std::istringstream ssStartTime(formattedStartTime);
     ssStartTime >> std::get_time(&tmStartTime, "%Y-%m-%dT%H:%M");
+}
+
+/**
+ * @brief Función que realiza la multiplicación de matrices
+ *
+ * @param N Tamaño de las matrices
+ * @param startRow Fila de la que continuar la ejecución
+ */
+void multiplicarMatrices(int N, int startRow) {
+    for (int i = startRow; i < N; ++i) {
+        if (stopTask) {
+            saveState(i);
+            break;
+        }
+        for (int j = 0; j < N; ++j) {
+            for (int k = 0; k < N; ++k) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+        if (i % 10 == 0) {
+            std::cout << "Fila " << i << " procesada." << std::endl;
+        }
+    }
 }
 
 /**
@@ -236,14 +324,13 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(PORT);
 
     // Convertir la dirección IP a binario
+    // La ip para probarlo en local es de 127.0.0.1, si se desea probarlo en red, modificar este numero con la dirección IP de conexión entre
+    // el cliente y el servidor
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
     {
         perror("invalid address/ Address not supported");
         return -1;
     }
-
-    // Conectar al servidor
-    cout << "Conectando al servidor..." << endl;
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         perror("connection failed");
@@ -253,6 +340,7 @@ int main(int argc, char *argv[])
     while (true)
     {
         memset(buffer, 0, sizeof(buffer));
+        cout << buffer << endl;
         int solicitud;
         if ((solicitud = read(sock, buffer, BUFFER_TAM)) <= 0)
         {
@@ -308,10 +396,12 @@ int main(int argc, char *argv[])
                             std::cout << std::endl;
 
                             // Enviar mensaje de precio de energía al servidor
-                            char message[BUFFER_TAM];
+                            memset(buffer, 0, sizeof(buffer));
+                            char message[BUFFER_TAM] = {0};
                             sprintf(message, "%s,%.2f", datosPrecio.pais.c_str(), datosPrecio.precio);
                             std::cout << "Enviando mensaje al servidor: " << message << std::endl;
                             send(sock, message, strlen(message), 0);
+                            cout << message << endl;
                             socketServer = sock;
                         }
                     }
@@ -331,14 +421,31 @@ int main(int argc, char *argv[])
                     }
     #pragma omp section
                     {
-                        if (strcmp(buffer, "STOP_TASK") == 0)
-                        {
-                            stopTask = true;
+                        if (strncmp(buffer, "MULTIPLY_MATRICES", 17) == 0) {
+                            stopTask = false;
+                            int N, state = 0;
+                            if (sscanf(buffer, "MULTIPLY_MATRICES:%d,STATE:%d", &N, &state) >= 1) {
+
+                                receiveMatrix(socketServer, A);
+                                receiveMatrix(socketServer, B);
+                                receiveMatrix(socketServer, C);
+                                
+                                std::thread multiplication_thread([N, state]() {
+                                    multiplicarMatrices(N, state);
+                                });
+                                multiplication_thread.detach();
+                            }
                         }
                     }
+                #pragma omp section
+                {
+                    if (strcmp(buffer, "STOP_TASK") == 0) {
+                        stopTask = true;
+                    }
                 }
-            }
+            }   
         }
-    
+    }
+
     return 0;
 }

@@ -14,12 +14,20 @@
 #include <condition_variable>
 #include <csignal>
 #include <omp.h>
+#include <fstream>  
+#include <boost/asio.hpp>
+
 
 #define PORT 8080
 #define MAX_CLIENTS 3
 #define BUFFER_TAM 1024
+#define MATRIX_SIZE 10000
+#define TRANSFERENCIA_ENERGIA 0.23415
+#define TAREA_ENERGIA 2.785
 
 using namespace std;
+using boost::asio::ip::tcp;
+
 
 /**
  * @brief Estructura para almacenar el precio de la energía por país.
@@ -30,10 +38,66 @@ struct PrecioEnergia {
 };
 
 mutex mtx;
-bool newPriceFound = false;
 int indicePaisBarato = -1;
 vector<int> client_sockets;
 vector<PrecioEnergia> precioEnergiaPaises;
+int estadoTarea = 0;
+
+int A[MATRIX_SIZE][MATRIX_SIZE], B[MATRIX_SIZE][MATRIX_SIZE], C[MATRIX_SIZE][MATRIX_SIZE];
+
+/**
+ * @brief Inicializa las matrices con valores aleatorios
+ *
+ * @param N Dimensión de las matrices.
+ */
+void initializeMatrices(int N) {
+    srand(time(0));
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            A[i][j] = rand() % 10;
+            B[i][j] = rand() % 10;
+            C[i][j] = 0;
+        }
+    }
+}
+
+/**
+ * @brief Envia una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente al que se enviará la matriz.
+ * @param matrix Matriz que se va a enviar.
+ */
+void sendMatrix(int client_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+     int buffer[BUFFER_TAM / sizeof(int)];
+    int elements_per_buffer = BUFFER_TAM / sizeof(int);
+
+    for (int i = 0; i < MATRIX_SIZE; ++i) {
+        for (int j = 0; j < MATRIX_SIZE; j += elements_per_buffer) {
+            int block_size = min(elements_per_buffer, MATRIX_SIZE - j);
+            memcpy(buffer, &matrix[i][j], block_size * sizeof(int));
+            send(client_socket, buffer, block_size * sizeof(int), 0);
+        }
+    }
+}
+
+/**
+ * @brief Recive una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente del que se recibirá la matriz.
+ * @param matrix Matriz que se va a recibir.
+ */
+void receiveMatrix(int server_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int buffer[BUFFER_TAM / sizeof(int)];
+    int elements_per_buffer = BUFFER_TAM / sizeof(int);
+
+    for (int i = 0; i < MATRIX_SIZE; ++i) {
+        for (int j = 0; j < MATRIX_SIZE; j += elements_per_buffer) {
+            int block_size = min(elements_per_buffer, MATRIX_SIZE - j);
+            recv(server_socket, buffer, block_size * sizeof(int), 0);
+            memcpy(&matrix[i][j], buffer, block_size * sizeof(int));
+        }
+    }
+}
 
 /**
  * @brief Envía un mensaje de detención al cliente especificado.
@@ -52,12 +116,42 @@ void stopTask(int clientSocket) {
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
         if (bytesReceived > 0) {
             buffer[bytesReceived] = '\0'; // Asegurarse de terminar la cadena
-            if (strcmp(buffer, "ACK_SAVE_STATE") == 0) {
-                std::cout << "Confirmación recibida del cliente: " << clientSocket << std::endl;
+            if (strncmp(buffer, "ACK_SAVE_STATE:", 15) == 0) {
+                int estado = atoi(buffer + 15);
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    estadoTarea = estado;
+                }
+                std::cout << "Estado recibido del cliente: " << estado << std::endl;
             }
         }
     }
 }
+
+/**
+ * @brief Calcular costo de transferencia de matrices
+ *
+ * @param energia Costo de la energía de la operación
+ * @param precio Precio de la luz en ese instante para ese país concreto
+ */
+double calcularCosto(double energia, double precio){
+    return (energia/1000000) * precio;
+}
+
+/**
+ * @brief Funcion que calcula si es rentrable transferir o no la ejecución
+ *
+ * @param precioClienteActual costo de la energía en el cliente actual
+ * @param precioClienteNuevo costo de la energía en el nuevo cliente
+ */
+bool esRentable(double precioClienteActual, double precioClienteNuevo){
+    double costoTransferencia = calcularCosto(TRANSFERENCIA_ENERGIA, precioClienteNuevo);
+    double costoActual = calcularCosto(TAREA_ENERGIA, precioClienteActual);
+    double costoNuevo = calcularCosto(TAREA_ENERGIA, precioClienteNuevo) + costoTransferencia;
+
+    return costoNuevo < costoActual;
+}
+
 
 /**
  * @brief Envía una nueva tarea al cliente especificado.
@@ -111,6 +205,22 @@ int determinarPaisMasBarato(const vector<PrecioEnergia>& paises) {
 }
 
 /**
+ * @brief Guarda en un archivo txt que cliente se ejecuta en cada instante y con qué precio
+ *
+ * @param pais Pais actual en el que se ejecutará la tarea.
+ * @param precio Precio actual de la energía para ese país.
+ */
+void historial(const string& pais, float precio) {
+    ofstream historyFile("historial.txt", ios::app); // Abrir en modo append
+    if (historyFile.is_open()) {
+        historyFile << "Cliente: " << pais << ", Precio: " << precio << endl;
+        historyFile.close();
+    } else {
+        cerr << "Unable to open file" << endl;
+    }
+}
+
+/**
  * @brief Recibe los precios de energía de los clientes y determina el país más barato.
  * @param client_sockets Vector de sockets de los clientes conectados.
  */
@@ -127,9 +237,6 @@ void recibirPrecios(vector<int>& client_sockets) {
         for (int j = 0; j < client_sockets.size(); j++) {
             if (send(client_sockets[j], request_msg, strlen(request_msg), 0) == -1) {
                 perror("send");
-                // Cerrar conexión con el cliente en caso de error
-                //close(client_sockets[j]);
-                //exit(EXIT_FAILURE);
             }
         }
 
@@ -164,7 +271,6 @@ void recibirPrecios(vector<int>& client_sockets) {
         // Determinar el país más barato
         double umbral = calcularMediana(precioEnergiaPaises);
         float precioBarato = -1;
-        // int indicePaisBarato = -1;
 
 #pragma omp critical
         {
@@ -176,25 +282,47 @@ void recibirPrecios(vector<int>& client_sockets) {
             precioBarato = precioEnergiaPaises[paisActual].precio;
             indicePaisBarato = paisActual;
         }
-        else {
+        else { 
             indicePaisBarato = determinarPaisMasBarato(precioEnergiaPaises);
             precioBarato = precioEnergiaPaises[indicePaisBarato].precio;
-            if (paisActual >= 0){
-                stopTask(client_sockets[paisActual]);
-                cout << "Enviando la nueva orden al cliente " << precioEnergiaPaises[indicePaisBarato].pais << " (Socket: " << client_sockets[indicePaisBarato] << ")" << endl;
-                char order[] = "COUNT_MINUTES:5";
-                send(client_sockets[indicePaisBarato], order, sizeof(order), 0);
-                memset(order, 0, sizeof(order));
-            } else{
-                cout << "Enviando la nueva orden al cliente " << precioEnergiaPaises[indicePaisBarato].pais << " (Socket: " << client_sockets[indicePaisBarato] << ")" << endl;
-                char order[] = "COUNT_MINUTES:5";
-                send(client_sockets[indicePaisBarato], order, sizeof(order), 0);
-                memset(order, 0, sizeof(order));
-            }
-            paisActual = indicePaisBarato;
             
+            if(paisActual < 0){
+                cout << "Enviando la nueva orden al cliente " << precioEnergiaPaises[indicePaisBarato].pais << " (Socket: " << client_sockets[indicePaisBarato] << ")" << endl;
+                char order[BUFFER_TAM] = {0};
+                sprintf(order, "MULTIPLY_MATRICES:10000,STATE:%d", estadoTarea);
+                send(client_sockets[indicePaisBarato], order, sizeof(order), 0);
+                memset(order, 0, sizeof(order));
+
+                sendMatrix(client_sockets[indicePaisBarato], A);
+                sendMatrix(client_sockets[indicePaisBarato], B);
+                sendMatrix(client_sockets[indicePaisBarato], C);
+
+                paisActual = indicePaisBarato;
+            }
+            else{  
+                double precioActual = precioEnergiaPaises[paisActual].precio;
+                if(!esRentable(precioActual, precioBarato)) {
+                    cout << "No es rentable trasladar la ejecución. Se mantiene el cliente actual." << endl;
+                }
+                else{
+                    stopTask(client_sockets[paisActual]);
+
+                    cout << "Enviando la nueva orden al cliente " << precioEnergiaPaises[indicePaisBarato].pais << " (Socket: " << client_sockets[indicePaisBarato] << ")" << endl;
+                    char order[BUFFER_TAM] = {0};
+                    sprintf(order, "MULTIPLY_MATRICES:10000,STATE:%d", estadoTarea);
+                    send(client_sockets[indicePaisBarato], order, sizeof(order), 0);
+                    memset(order, 0, sizeof(order));
+
+                    sendMatrix(client_sockets[indicePaisBarato], A);
+                    sendMatrix(client_sockets[indicePaisBarato], B);
+                    sendMatrix(client_sockets[indicePaisBarato], C);
+
+                    paisActual = indicePaisBarato;
+                }
+            }
         }           
-        this_thread::sleep_for(chrono::minutes(1));
+        historial(precioEnergiaPaises[indicePaisBarato].pais, precioEnergiaPaises[indicePaisBarato].precio);
+        this_thread::sleep_for(chrono::hours(1));
     }
 }
 
@@ -249,13 +377,13 @@ int main() {
         cout << "Cliente conectado. Socket: " << new_socket << endl;
     }
 
-
+    initializeMatrices(10);
 
     // Crear hebra para manejar la comunicación con los clientes
     #pragma omp parallel num_threads(2)
-        {
+    {           
     #pragma omp sections
-            {
+    {
     #pragma omp section
                 {
                     // Hebra para recibir los precios de los clientes
@@ -277,7 +405,7 @@ int main() {
 
                     }
                 }
-            }
+    }
         }
 
     return 0;

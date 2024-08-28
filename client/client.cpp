@@ -33,11 +33,17 @@ using boost::asio::ip::tcp;
 
 bool stopTask = false;
 int socketServer;
-std::mutex mtx; // Mutex para proteger el acceso al recurso compartido
+std::mutex mtx; 
 
 int A[MATRIX_SIZE][MATRIX_SIZE], B[MATRIX_SIZE][MATRIX_SIZE], C[MATRIX_SIZE][MATRIX_SIZE];
 
-void sendMatrix(int client_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+/**
+ * @brief Envia una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente al que se enviará la matriz.
+ * @param matrix Matriz que se va a enviar.
+ */
+ void sendMatrix(int client_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
     int buffer[BUFFER_TAM / sizeof(int)];
     int elements_per_buffer = BUFFER_TAM / sizeof(int);
 
@@ -52,6 +58,12 @@ void sendMatrix(int client_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
     }
 }
 
+/**
+ * @brief Recive una matriz al cliente a través de un socket
+ *
+ * @param client_socket El socket del cliente del que se recibirá la matriz.
+ * @param matrix Matriz que se va a recibir.
+ */
 void receiveMatrix(int server_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
     int buffer[BUFFER_TAM / sizeof(int)];
     int elements_per_buffer = BUFFER_TAM / sizeof(int);
@@ -72,38 +84,30 @@ void receiveMatrix(int server_socket, int matrix[MATRIX_SIZE][MATRIX_SIZE]) {
  * @param state El estado de la tarea a guardar.
  */
 void saveState(int row) {
-    std::lock_guard<std::mutex> lock(mtx);  // Asegura el acceso exclusivo al archivo
+    std::lock_guard<std::mutex> lock(mtx);  
     std::ofstream file("taskState.tmp");
     if (file.is_open()) {
-        file << row;  // Escribe el número de la fila actual en el archivo
+        file << row;  
         file.close();
         char ackMessage[BUFFER_TAM] = {0};
         sprintf(ackMessage, "ACK_SAVE_STATE:%d", row);
         send(socketServer, ackMessage, strlen(ackMessage), 0);
-
-        // Serializar la matriz C y enviarla al servidor
-        // sendMatrix(socketServer, C);
 
         std::cout << "Estado guardado: Fila " << row << std::endl;
     } else {
         perror("Error al abrir el archivo taskState.tmp.");
     }
     stopTask = false;
-/*
-    // Enviar el estado al servidor
-    char stateMessage[BUFFER_TAM]  = {0};
-    sprintf(stateMessage, "STATE:%d", row);
-    send(socketServer, stateMessage, strlen(stateMessage), 0);
-    std::cout << "Estado enviado al servidor: Fila " << row << std::endl;   
-    */
 }
 
-
+/**
+ * @brief Carga el estado de la tarea desde un archivo temporal.
+ */
 int loadState() {
     std::ifstream file("taskState.tmp");
     int row = 0;
     if (file.is_open()) {
-        file >> row;  // Lee el número de la fila desde el archivo
+        file >> row;  
         file.close();
         std::cout << "Estado restaurado: Continuando desde la fila " << row << std::endl;
     } else {
@@ -163,6 +167,12 @@ void obtenerHorasFormateadas(std::string &formattedStartTime, std::string &forma
     ssStartTime >> std::get_time(&tmStartTime, "%Y-%m-%dT%H:%M");
 }
 
+/**
+ * @brief Función que realiza la multiplicación de matrices
+ *
+ * @param N Tamaño de las matrices
+ * @param startRow Fila de la que continuar la ejecución
+ */
 void multiplicarMatrices(int N, int startRow) {
     for (int i = startRow; i < N; ++i) {
         if (stopTask) {
@@ -313,7 +323,9 @@ int main(int argc, char *argv[])
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
-    // Convertir la dirección IP a binario, ojo la ip del servidor fuera es 192.168.1.162
+    // Convertir la dirección IP a binario
+    // La ip para probarlo en local es de 127.0.0.1, si se desea probarlo en red, modificar este numero con la dirección IP de conexión entre
+    // el cliente y el servidor
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
     {
         perror("invalid address/ Address not supported");
@@ -431,7 +443,7 @@ int main(int argc, char *argv[])
                         stopTask = true;
                     }
                 }
-            }
+            }   
         }
     }
 

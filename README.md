@@ -3,14 +3,9 @@
 
 The objective of this project is to implement a C++ scheduler that evaluates hourly electricity prices at run time. Based on these values, the algorithm will geo-distribute the workload of an application or task.
 
-## General Information
+## Author
 
-- **Author** Raúl Rodríguez Fernández
-
--  **Tutor:** Juan José Escobar Pérez
-- **Department:** Computer Languages ​​and System
-
-  
+Raúl Rodríguez Fernández (raulrf2601@correo.ugr.es) and Juan José Escobar (jjescobar@ugr.es)
 
 
 ## Setup
@@ -48,7 +43,7 @@ This work has been funded by:
 
 - European Regional Development Fund (ERDF).
 
-- Universidad de Granada, under grant number PPJIA2023-025.
+- University of Granada, under grant number PPJIA2023-025.
 
 
 
